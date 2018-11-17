@@ -1,0 +1,51 @@
+---
+title: "Neural 2"
+author: "Kendall Brown"
+date: "September 13, 2018"
+output: pdf_document
+---
+
+```{r}
+require(neuralnet)
+```
+```{r}
+infert.df=infert
+```
+```{r}
+infert.nn=neuralnet(case~age+parity+induced+spontaneous,data=infert.df,hidden=2,
+                    err.fct = "ce",linear.output = F)
+```
+
+```{r}
+plot(infert.nn)
+```
+```{r}
+head(infert.nn$result.matrix,3)
+infert.nn$weights
+infert.nn$net.result
+```
+```{r}
+infert.nn1=ifelse(infert.nn$net.result[[1]]>=.5,1,0)
+infert.nn1
+```
+```{r}
+misclass.err=mean(infert$case!=(infert.nn1))
+misclass.err
+```
+```{r}
+infert.nn.bp=neuralnet(case~age+parity+induced+spontaneous,data=infert.df,hidden=2,
+                    err.fct = "ce",learningrate = .01,algorithm = 'backprop',linear.output = F)
+plot(infert.nn.bp)
+infert.nn.bp1=ifelse(infert.nn$net.result[[1]]>=.5,1,0)
+head(infert.nn.bp$result.matrix,3)
+misclass.err.bp=mean(infert$case!=(infert.nn.bp1))
+misclass.err.bp
+```
+```{r}
+new.output=compute(infert.nn,covariate=matrix(c(22,1,0,0,
+                                               22,1,1,0,
+                                               22,1,0,1,
+                                               22,1,1,1),
+                                             byrow=TRUE,ncol=4))
+new.output
+```

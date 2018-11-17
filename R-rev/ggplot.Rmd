@@ -1,0 +1,39 @@
+---
+title: "Visualizations"
+author: "Kendall Brown"
+date: "September 15, 2018"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+```
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))+
+  facet_grid(drv~cyl)
+```
+```{r}
+ggplot(data=mpg,mapping=aes(x=displ,y=hwy))+
+  geom_point(mapping=aes(color=class))+
+  geom_smooth()
+```
+```{r}
+ggplot(data=mpg)+
+  geom_point(mapping=aes(x=displ,y=hwy))
+filter(mpg,cyl==8)
+filter(diamonds,carat>3)
+```
+```{r}
+library(nycflights13)
+flights.data=data(flights)
+jan1=filter(flights,month==1,day==1)
+dec25=filter(flights,month==12,day==25)
+novdec=filter(flights,month==11 | month==12)
+novdec
+```
+```{r}
+ggplot(data=mpg)+
+  geom_boxplot(mapping=aes(x=reorder(class,hwy,FUN=median),y=hwy,fill=class))+
+  coord_flip()
+```

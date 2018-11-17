@@ -1,0 +1,132 @@
+---
+title: "Untitled"
+author: "Kendall Brown"
+date: "September 10, 2018"
+output: pdf_document
+---
+
+
+```{r}
+library(ROCR)
+library(caTools)
+library(DMwR)
+data=read.csv('C:/Users/kebro/Downloads/pima.te.csv',header=T)
+data=data[,-1]
+```
+Checking for class imbalance
+```{r}
+sum(data$type=='Yes')/nrow(data)
+```
+Observed class imbalance of nearly 2:1 in favor of type=No. Going to downsample and upsample for class equality.
+
+Splitting dataset into training and test sets.
+```{r}
+split=sample.split(data,SplitRatio=.8)
+split
+test=subset(data,split=="FALSE")
+train=subset(data,split=='TRUE')
+```
+Downsampling test set for class balance
+```{r}
+#seperating data set into groups based on type
+trainno=train[train$type=='No',]
+trainyes=data[train$type=='Yes',]
+#removing rows from majority class
+trainno=trainno[sample(nrow(trainno),nrow(trainyes)),]
+#creating undersampled training set
+trainus=rbind(trainyes,trainno)
+#radomizing undersampled dataset for training.
+trainus=trainus[sample(nrow(trainus),nrow(trainus)),]
+```
+
+```{r}
+#Creating original model
+model=glm(type~.,train,family="binomial")
+summary(model)
+#Adjusting model to remove unnecessary variables
+model=glm(type~.-skin,train,family="binomial")
+summary(model)
+#making first set of predictions and calculating accuracy
+res=predict(model,test,type='response')
+res
+cm=table(actualvalue=test$type,predictedvalue=res>0.5)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+#Drawing ROC curve to establish decision boundry
+res=predict(model,train,type='response')
+ROCRpred=prediction(res,train$type)
+ROCRperf=performance(ROCRpred,'tpr','fpr')
+plot(ROCRperf,colorize=T,print.cutoffs.at=seq(.1,by=.1))
+#Recalculating accuracy based off new decison boundry
+res=predict(model,test,type='response')
+cm=table(actualvalue=test$type,predictedvalue=res>0.3)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+```
+
+Accounting for class imbalance using undersampled training data
+```{r}
+#Training model with balanced data
+model=glm(type~.,trainus,family="binomial")
+summary(model)
+model=glm(type~.-skin-bp-ped,trainus,family="binomial")
+summary(model)
+#Making initla predicitons and calculating accuracy with balanced data
+res=predict(model,test,type='response')
+res
+cm=table(actualvalue=test$type,predictedvalue=res>0.5)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+#Drawing ROC curve to calculate new decison boundry and calculating a new accuracy level.
+res=predict(model,trainus,type='response')
+ROCRpred=prediction(res,trainus$type)
+ROCRperf=performance(ROCRpred,'tpr','fpr')
+plot(ROCRperf,colorize=T,print.cutoffs.at=seq(.1,by=.1))
+res=predict(model,test,type='response')
+cm=table(actualvalue=test$type,predictedvalue=res>0.2)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+```
+
+Accounting for class imbalance using oversampled training data
+```{r}
+library(DMwR)
+```
+```{r}
+trainos=SMOTE(type~.,train,perc.over = 100,perc.under = 200)
+table(trainos$type)
+```
+```{r}
+model=glm(type~.,trainos,family="binomial")
+summary(model)
+```
+```{r}
+model=glm(type~.,trainos,family="binomial")
+summary(model)
+```
+```{r}
+model=glm(type~.-bp-age,trainos,family="binomial")
+summary(model)
+```
+```{r}
+res=predict(model,test,type='response')
+res
+cm=table(actualvalue=test$type,predictedvalue=res>0.5)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+#Drawing ROC curve to calculate new decison boundry and calculating a new accuracy level.
+res=predict(model,trainos,type='response')
+ROCRpred=prediction(res,trainos$type)
+ROCRperf=performance(ROCRpred,'tpr','fpr')
+plot(ROCRperf,colorize=T,print.cutoffs.at=seq(.1,by=.1))
+res=predict(model,test,type='response')
+cm=table(actualvalue=test$type,predictedvalue=res>0.55)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+```

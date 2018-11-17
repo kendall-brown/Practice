@@ -1,0 +1,56 @@
+---
+title: "neural net"
+author: "Kendall Brown"
+date: "September 13, 2018"
+output: pdf_document
+---
+
+```{r}
+library(MASS)
+library(neuralnet)
+set.seed(123)
+```
+```{r}
+Boston.df=Boston
+```
+scaling data values to be between 0 and 1
+```{r}
+maxvalue=apply(Boston.df,2,max)
+minvalue=apply(Boston.df,2,min)
+Boston.df=as.data.frame(scale(Boston.df,center=minvalue,scale = maxvalue-minvalue))
+```
+Creating training and testing dataframe
+```{r}
+ind=sample(1:nrow(Boston.df),400,replace = F)
+boston.train=Boston.df[ind,]
+boston.test=Boston.df[-ind,]
+```
+Constructing the formula
+```{r}
+allVars=colnames(Boston.df)
+predVars=allVars[!allVars%in%'medv']
+predVars=paste(predVars,collapse="+")
+form=as.formula(paste("medv~",predVars,collapse = "+"))
+```
+fitting neural net
+```{r}
+neuralmodel=neuralnet(formula = form,data=boston.train,hidden=c(4,2),linear.output = T)
+```
+```{r}
+plot(neuralmodel)
+```
+Computing and descaling predictions
+```{r}
+test.pred=compute(neuralmodel,boston.test[,1:13])
+str(test.pred)
+test.pred=test.pred$net.result*(max(boston.test$medv)-min(boston.test$medv))+min(boston.test$medv)
+test.actual=(boston.test$medv)*(max(boston.test$medv)-min(boston.test$medv)+min(boston.test$medv))
+```
+```{r}
+mse=sum((test.pred-test.actual)^2)/nrow(boston.test)
+mse
+```
+```{r}
+plot(boston.test$medv,test.pred,col='blue',main="Real vs Predicted", 
+     pch=1,cex=.9,type='p',ylab="Predicted",xlab="Actual")
+```

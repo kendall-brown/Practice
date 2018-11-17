@@ -1,0 +1,39 @@
+---
+title: "lotto"
+author: "Kendall Brown"
+date: "October 20, 2018"
+output: pdf_document
+---
+
+```{r}
+n=10000+1
+lotto=matrix(,nrow=n,ncol=6)
+winners=c(15,23,53,65,70,7)
+results=rep(0,n)
+for(i in seq(1,n)){
+  x=sort(sample(c(1:70),5,replace=F))
+  y=sample(c(1:25),1)
+  lotto[i,]=x
+  lotto[i,6]=y
+  #lotto[n,0:6]=winners
+  results[i-1]=(sum((lotto[i,]==winners))==6)
+}
+sum(results)
+```
+
+```{r}
+winners=c(15,23,53,65,70,7)
+count=0
+check=0
+while(check<5){
+  x=sample(70,5)
+  y=sample(25,1)
+  y=0
+  #x=winners[1:5]
+  #y=winners[6]
+  count=count+1
+  check=length(intersect(x,winners[1:5]))+(y==winners[6])
+}
+check
+count
+```

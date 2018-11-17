@@ -1,0 +1,38 @@
+---
+title: "Untitled"
+author: "Kendall Brown"
+date: "April 19, 2018"
+output: pdf_document
+---
+
+```{r}
+z=rep(0,100000)
+for(i in 1:100000){
+  y=sum(rexp(5000,2))
+  x=sum(rexp(5000,1))
+  z[i]=x+y
+}
+zt=z[z<=7456 & z>=7400]
+length(zt)/length(z)
+plot(z)
+```
+
+```{r}
+kz=rep(0,10000)
+for(i in 1:length(kz)){
+  k=sum(rexp(12500,3))
+  kz[i]=k
+}
+kt=kz[kz<=7456 & kz>=7400]
+length(kt)/length(kz)
+```
+
+```{r}
+install.packages("tm")
+install.packages("SnowballC")
+install.packages("wordcloud")
+install.packages("RColorBrewer")
+install.packages("topicmodels")
+install.packages("ldatuning")
+install.packages("SentimentAnalysis")
+```

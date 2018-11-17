@@ -1,0 +1,102 @@
+---
+title: "PCA multiclass"
+author: "Kendall Brown"
+date: "September 17, 2018"
+output: pdf_document
+---
+
+```{r}
+library(caTools)
+library(psych)
+library(keras)
+library(DMwR)
+```
+
+```{r}
+data=read.csv(file.choose(),header=T)
+split=sample.split(data,SplitRatio = .8)
+training=subset(data,split=="TRUE")
+test=subset(data,split=="FALSE")
+#pairs.panels(training[,-22],gap=0,bg=c("red","yellow","blue")[training$NSP],pch=21)
+```
+
+```{r}
+pc=prcomp(data[,-22],scale. = T,center = T)
+cum.prop=summary(pc)$importance[3,]
+cum.prop
+#pairs.panels(pc$x,gap=0,bg=c("red","yellow","blue")[training$NSP],pch=21)
+```
+
+```{r}
+npc=12
+trg=predict(pc,training)
+trg=data.frame(trg,training[22]-1)
+trg[,22]=sapply(trg[,22],as.factor)
+tst=predict(pc,test)
+tst=data.frame(tst,test[22]-1)
+table(trg[,22])/nrow(trg)
+trg.smote=SMOTE(NSP~.,data=trg,k=30,perc.over = 100)
+table(trg.smote[,22])/nrow(trg.smote)
+trg.smote=SMOTE(NSP~.,data=trg.smote,k=30,perc.over = 550)
+table(trg.smote[,22])/nrow(trg.smote)
+```
+
+```{r}
+trg.smote[,22]=sapply(trg.smote[,22],as.character)
+trg.smote[,22]=sapply(trg.smote[,22],as.numeric)
+trg=as.matrix(trg.smote)
+#trg[,22]=sapply(trg[,22],as.character)
+#trg[,22]=sapply(trg[,22],as.numeric)
+#trg=as.matrix(trg)
+trg.target=trg[,22]
+trg=trg[,1:21]
+tst[,22]=sapply(tst[,22],as.numeric)
+tst=as.matrix(tst)
+tst.target=tst[,22]
+tst=tst[,1:21]
+```
+
+```{r}
+model=keras_model_sequential()
+model%>%
+  layer_dense(units=50,activation="relu",input_shape=c(npc))%>%
+  #layer_dense(units=10,activation="relu")%>%
+  layer_dense(units=3,activation="softmax")
+summary(model)
+```
+
+```{r}
+model%>%
+  compile(loss="categorical_crossentropy",
+          optimizer="adam",
+          metrics="accuracy")
+```
+
+```{r}
+history=model%>%
+  fit(trg[,1:npc],
+      to_categorical(trg.target),
+      epoch=100,
+      batch_size=32,
+      validation_split=.2)
+```
+
+```{r}
+model1=model%>%
+  evaluate(tst[,1:npc],to_categorical(tst.target))
+```
+
+```{r}
+prob=model%>%
+  predict_proba(tst[,1:npc])
+pred=model%>%
+  predict_classes(tst[,1:npc])
+table1=table(predicted=pred,actual=tst.target)
+model1
+table1
+```
+```{r}
+library(ggbiplot)
+g=ggbiplot(pc,obs.scale = 1,var.scale = 1,groups=data$NSP,ellipse = T,circle=T,ellipse.prob = .68)
+g
+```

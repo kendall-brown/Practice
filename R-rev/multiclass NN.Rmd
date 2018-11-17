@@ -1,0 +1,105 @@
+---
+title: "Neural fix"
+author: "Kendall Brown"
+date: "September 16, 2018"
+output: pdf_document
+---
+
+```{r}
+library(keras)
+library(caTools)
+library(DMwR)
+```
+```{r}
+data=read.csv(file.choose(),header=T)
+```
+```{r}
+str(data)
+```
+```{r}
+data=as.matrix(data)
+dimnames(data)=NULL
+data[,1:21]=normalize(data[,1:21])
+data[,22]=as.numeric(data[,22])-1
+data=as.data.frame(data)
+summary(data)
+```
+```{r}
+set.seed(1234)
+split=sample.split(data,SplitRatio = .7)
+training=subset(data,split=="TRUE")
+test=subset(data,split=="FALSE")
+test=sapply(test,as.matrix)
+table1=table(training[,22])/nrow(training)
+training[,22]=sapply(training[,22],as.factor)
+training=SMOTE(V22~.,training,perc.over = 100)
+training=SMOTE(V22~.,training,perc.over = 600)
+table2=table(training[,22])/nrow(training)
+c(table1,table2)
+training[,22]=sapply(training[,22],as.character)
+training[,22]=sapply(training[,22],as.numeric)
+training=sapply(training,as.matrix)
+trainingtarget=training[,22]
+training=training[,1:21]
+testtarget=test[,22]
+test=test[,1:21]
+```
+```{r, eval=FALSE, include=FALSE}
+set.seed(1234)
+ind=sample(2,nrow(data),replace=T,prob=c(.7,.3))
+training=data[ind==1,1:21]
+test=data[ind==2,1:21]
+trainingtarget=data[ind==1,22]
+testtarget=data[ind==2,22]
+```
+```{r}
+trainlabels=to_categorical(trainingtarget)
+testlabels=to_categorical(testtarget)
+head(testlabels)
+```
+```{r}
+model=keras_model_sequential()
+model%>%
+  layer_dense(units=50,activation="relu",input_shape=c(21))%>%
+  layer_dense(units=25,activation="relu")%>%
+  layer_dense(units=8,activation="relu")%>%
+  layer_dense(units=3,activation="softmax")
+summary(model)
+```
+```{r}
+model%>%
+  compile(loss="categorical_crossentropy",
+          optimizer="adam",
+          metrics="accuracy")
+```
+
+```{r}
+history=model%>%
+  fit(training,
+      trainlabels,
+      epoch=200,
+      batch_size=32,
+      validation_split=.2)
+```
+```{r}
+model1=model%>%
+  evaluate(test,testlabels)
+```
+```{r}
+prob=model%>%
+  predict_proba(test)
+pred=model%>%
+  predict_classes(test)
+table1=table(predicted=pred,actual=testtarget)
+```
+```{r, include=FALSE}
+head(cbind(prob,pred,testtarget),5)
+```
+```{r}
+table1
+model1
+```
+```{r}
+library(githubinstall)
+githubinstall("ggbiplot")
+```

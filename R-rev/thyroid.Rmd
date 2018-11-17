@@ -1,0 +1,86 @@
+---
+title: "Thyroid"
+author: "Kendall Brown"
+date: "September 12, 2018"
+output: pdf_document
+---
+
+```{r}
+library(DMwR)
+```
+```{r}
+thyroid=read.csv('http://archive.ics.uci.edu/ml/machine-learning-databases/thyroid-disease/hypothyroid.data',header=F)
+names=read.csv('http://archive.ics.uci.edu/ml/machine-learning-databases/thyroid-disease/hypothyroid.names',header=F,sep='\t')[[1]]
+```
+Data Cleaning
+```{r}
+names=gsub(pattern=":|[.]",x=names,replacement="")
+colnames(thyroid)=names
+colnames(thyroid)[colnames(thyroid)=="hypothyroid, negative"]='Target'
+thyroid$Target=ifelse(thyroid$Target=='negative',0,1)
+table(thyroid$Target)
+ind=sapply(thyroid,is.factor)
+thyroid[ind]=lapply(thyroid[ind],as.character)
+thyroid[thyroid=='?']=NA
+thyroid[thyroid=='f']=0
+thyroid[thyroid=='t']=1
+thyroid[thyroid=='F']=1
+thyroid[thyroid=='M']=0
+thyroid[thyroid=='n']=0
+thyroid[thyroid=='y']=1
+thyroid[ind]=lapply(thyroid[ind],as.numeric)
+repalceNAwithmean=function(x){replace(x,is.na(x),mean(x[!is.na(x)]))}
+thyroid=repalceNAwithmean(thyroid)
+table(thyroid$Target)
+prop.table(table(thyroid$Target))
+```
+```{r}
+library(caret)
+set.seed(1234)
+split=createDataPartition(thyroid$Target,p=.8,list=F,times=1)
+thy.train=thyroid[split,]
+thy.test=thyroid[-split,]
+table(thy.train$Target)
+prop.table(table(thy.train$Target))
+```
+Training initial model
+```{r}
+ctrl=trainControl(method="cv",number = 5)
+tbmodel=train(Target~.,data=thy.train,method='treebag',trControl=ctrl)
+predictors=names(thy.train)[names(thy.train)!='Target']
+thy.pred=predict(tbmodel$finalModel,thy.test[,predictors])
+```
+```{r}
+library(pROC)
+auc=roc(thy.test$Target,thy.pred)
+print(auc)
+```
+Upsampling using SMOTE
+```{r}
+thy.train$Target=as.factor(thy.train$Target)
+thy.train=SMOTE(Target~.,thy.train,perc.over = 100,perc.under = 200)
+table(thy.train$Target)
+```
+```{r}
+thy.train$Target=as.numeric(as.character(thy.train$Target))
+```
+
+```{r}
+tbmodel=train(Target~.,data=thy.train,method='treebag',trControl=ctrl)
+predictors=names(thy.train)[names(thy.train)!='Target']
+thy.pred=predict(tbmodel$finalModel,thy.test[,predictors])
+```
+
+```{r}
+auc=roc(thy.test$Target,thy.pred)
+plot(auc)
+print(auc)
+```
+```{r}
+cm=table(actualvalue=thy.test$Target,predictedvalue=thy.pred>=.7)
+cm
+accuracy=(sum(cm[c(1,4)]))/(sum(cm[1:4]))
+accuracy
+```
+
+
